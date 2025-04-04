@@ -9,25 +9,147 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ```{r}
 library(tidyverse)
+library(stringdist)
 ```
 
 ```{r}
 data <- read.csv("~/Desktop/dougscore-dataset/DougScore.csv")
-data_2 <- data <- read.csv("~/Desktop/dougscore-dataset/ds_updated.csv")
+data_2 <- read.csv("~/Desktop/dougscore-dataset/ds_updated.csv")
 ```
-
 
 ```{r}
 dougscore <- data_2 %>% 
   mutate(
     weekend_score = styling + acceleration + handling + fun_factor + cool_factor,
     daily_score = features + comfort + quality + practicality + value,
-    total_score = weekend_score + daily_score
+    total_score = weekend_score + daily_score, 
+    car_id = paste(year, make, model)
   )
 ```
 
+
+#Functions
+
+##Get Top Cars
 ```{r}
-write_csv(head(dougscore), "~/Desktop/dougscore-dataset/dougscore_head.csv")
+get_top_cars <- function(df, metric, n = 5) {
+  if (!metric %in% colnames(df)) {
+    stop(paste("Column", metric, "not found in dataframe."))
+  }
+
+  df %>%
+    arrange(desc(.data[[metric]])) %>%
+    slice_head(n = n)
+}
+```
+
+###Get Top Cars Test
+```{r}
+get_top_cars(dougscore, metric = "msrp", n = 10)
+```
+
+##Search Cars
+```{r}
+search_cars <- function(df, query, max_results = 10) {
+  query <- tolower(query)
+
+  results <- df %>%
+    filter(
+      str_detect(tolower(make), query) |
+      str_detect(tolower(model), query) |
+      str_detect(tolower(paste(year, make, model)), query)
+    ) %>%
+    slice_head(n = max_results)
+
+  return(results)
+}
+
+```
+
+###Search Test
+```{r}
+search_cars(dougscore, "gt-r")
+search_cars(dougscore, "ferrari", max_results = 3)
+search_cars(dougscore, "1994", max_results = 5)
+```
+##Filter By
+```{r}
+filter_by <- function(df, column, query, max_results = 10) {
+  column <- rlang::ensym(column)
+  query <- tolower(query)
+
+  df %>%
+    filter(str_detect(tolower(!!column), fixed(query))) %>%
+    slice_head(n = max_results)
+}
+```
+
+###Filter Test
+```{r}
+gtr <- filter_by(dougscore, model, "gtr")
+head(gtr)
+porsche <- filter_by(dougscore, make, "porsche")
+head(porsche)
+year_1994 <- filter_by(dougscore, year, "1994")
+head(year_1994)
+```
+
+##Compare Cars
+```{r}
+compare_cars <- function(df, queries, max_results_per_query = 1) {
+  # For each query, get top match(es) using search_cars()
+  matched <- purrr::map_dfr(
+    queries,
+    ~ search_cars(df, query = .x, max_results = max_results_per_query)
+  )
+
+  # Optional: add a unique car_id column for readability
+  matched <- matched %>%
+    mutate(car_id = paste(year, make, model)) %>%
+    select(car_id, weekend_score, daily_score, total_score,
+           mpg, hp, displacement, transmission, fuel)
+
+  return(matched)
+}
+
+```
+
+###Test Compare
+```{r}
+compare_cars(dougscore, c("mclaren f1", "ferrari f40", "porsche 918"))
+```
+
+##Plot Compare
+```{r}
+library(ggplot2)
+
+plot_comparison <- function(df, queries, metric = "total_score", max_results = 1) {
+  # Use search_cars to get top match(es) per query
+  matched <- purrr::map_dfr(
+    queries,
+    ~ search_cars(df, query = .x, max_results = max_results)
+  )
+
+  # Create a car_id label
+  matched <- matched %>%
+    mutate(car_id = paste(year, make, model))
+
+  if (!metric %in% names(matched)) {
+    stop(paste("Metric", metric, "not found in data."))
+  }
+
+  ggplot(matched, aes(x = reorder(car_id, .data[[metric]]), y = .data[[metric]])) +
+    geom_col(fill = "#4ad493") +
+    labs(title = paste("Comparison of", metric),
+         x = "Car", y = metric) +
+    theme_minimal() +
+    coord_flip()
+}
+```
+
+###Plot Compare Test
+```{r}
+plot_comparison(dougscore, queries = c("mclaren f1", "hummer ev", "nissan", "amg"), metric = "hp")
 ```
 
 
