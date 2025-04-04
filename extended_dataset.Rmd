@@ -1,0 +1,27 @@
+---
+title: "extended_dataset"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(tidyverse)
+```
+
+```{r}
+data <- read.csv("~/Desktop/DougScore Dataset/DougScore.csv")
+```
+
+```{r}
+data <- data %>% 
+  mutate(
+    weekend_score = styling + acceleration + handling + fun_factor + cool_factor,
+    daily_score = features + comfort + quality + practicality + value,
+    total_score = weekend_score + daily_score
+  )
+```
+
+
