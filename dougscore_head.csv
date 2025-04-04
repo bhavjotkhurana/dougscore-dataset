@@ -1,0 +1,7 @@
+year,make,model,styling,acceleration,handling,fun_factor,cool_factor,features,comfort,quality,practicality,value,country,msrp,market_value,hp,torque,top_speed,zero_sixty,fuel,hybrid,displacement,cylinders,transmission,mpg,carplay,forced_induction,weekend_score,daily_score,total_score
+2020,McLaren,Speedtail,8,10,10,10,10,7,4,7,2,6,UK,2200000,NA,1036,848,250,2.9,gas,1,4,8,auto,15,0,1,48,26,74
+1994,McLaren,F1,8,9,10,10,10,2,3,9,3,10,UK,20000000,NA,627,480,240,3.2,gas,0,6.1,12,manual,14,0,0,47,27,74
+2022,Lucid,Air Dream Edition,7,10,6,7,8,9,8,7,5,6,USA,170500,NA,1111,1025,168,2.6,electric,0,NA,,auto,111,1,NA,38,35,73
+2022,GMC,Hummer EV Pickup,5,9,4,9,7,9,7,7,9,7,USA,118000,NA,1000,1000,106,3,electric,0,NA,,auto,47,1,NA,34,39,73
+2021,Rivian,R1T,7,9,5,9,7,7,6,6,9,8,USA,75000,NA,754,826,110,3.1,electric,0,NA,,auto,70,1,NA,37,36,73
+2021,Tesla,Model S Plaid,6,10,6,8,7,9,7,6,7,7,USA,129990,NA,1020,1050,200,1.99,electric,0,NA,,auto,116,0,NA,37,36,73

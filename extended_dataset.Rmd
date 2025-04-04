@@ -12,16 +12,22 @@ library(tidyverse)
 ```
 
 ```{r}
-data <- read.csv("~/Desktop/DougScore Dataset/DougScore.csv")
+data <- read.csv("~/Desktop/dougscore-dataset/DougScore.csv")
+data_2 <- data <- read.csv("~/Desktop/dougscore-dataset/ds_updated.csv")
 ```
 
+
 ```{r}
-data <- data %>% 
+dougscore <- data_2 %>% 
   mutate(
     weekend_score = styling + acceleration + handling + fun_factor + cool_factor,
     daily_score = features + comfort + quality + practicality + value,
     total_score = weekend_score + daily_score
   )
+```
+
+```{r}
+write_csv(head(dougscore), "~/Desktop/dougscore-dataset/dougscore_head.csv")
 ```
 
 
