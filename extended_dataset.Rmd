@@ -21,6 +21,15 @@ data_2 <- read.csv("~/Desktop/dougscore-dataset/ds_updated.csv")
 ```
 
 ```{r}
+api_key <- Sys.getenv("OPENAI_API_KEY")
+
+if (api_key == "") {
+  stop("OpenAI API key not found. Make sure it's in your .Renviron file.")
+}
+```
+
+
+```{r}
 dougscore <- data_2 %>% 
   mutate(
     weekend_score = styling + acceleration + handling + fun_factor + cool_factor,
@@ -305,6 +314,52 @@ get_car_summary <- function(df, query) {
 
 ###Test: Get Car Summary
 ```{r}
-get_car_summary(dougscore, "lucid air")
+get_car_summary(dougscore, "MAZDA Cx")
 ```
+##LLM Get Car Summary
+```{r}
+get_car_summary_llm <- function(df, query, engine = "gpt-3.5-turbo") {
+  car <- search_metric(df, query, max_results = 1)
+  if (nrow(car) == 0) stop("Car not found.")
+
+  # Format info to send to the LLM
+  input_text <- glue::glue(
+    "Write a short, engaging car review summary for the following specs:\n",
+    "Car: {car$year} {car$make} {car$model}\n",
+    "DougScore: {car$total_score}/100 (Weekend: {car$weekend_score}, Daily: {car$daily_score})\n",
+    "Transmission: {car$transmission}\n",
+    "Displacement: {car$displacement}L\n",
+    "Horsepower: {car$hp} hp\n",
+    "Fuel Type: {car$fuel_type}\n",
+    "Fuel Economy: {car$mpg} mpg\n",
+    if (!is.na(car$carplay) && car$carplay == 1) "Includes CarPlay.\n" else "",
+    .trim = TRUE
+  )
+
+  res <- httr::POST(
+    url = "https://api.openai.com/v1/chat/completions",
+    httr::add_headers(
+      Authorization = paste("Bearer", Sys.getenv("OPENAI_API_KEY")),
+      `Content-Type` = "application/json"
+    ),
+    body = jsonlite::toJSON(list(
+      model = engine,
+      messages = list(
+        list(role = "system", content = "You are a car journalist writing snappy, data-informed vehicle reviews."),
+        list(role = "user", content = input_text)
+      ),
+      temperature = 0.7
+    ), auto_unbox = TRUE)
+  )
+
+  output <- httr::content(res)
+  summary_text <- output$choices[[1]]$message$content
+
+  list(
+    car_data = car %>% select(year, make, model, total_score, mpg, hp),
+    summary = summary_text
+  )
+}
+```
+
 
