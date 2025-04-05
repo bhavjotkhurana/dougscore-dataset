@@ -35,7 +35,9 @@ dougscore <- data_2 %>%
     weekend_score = styling + acceleration + handling + fun_factor + cool_factor,
     daily_score = features + comfort + quality + practicality + value,
     total_score = weekend_score + daily_score, 
-    car_id = paste(year, make, model)
+    car_id = paste(year, make, model),
+    rotary_engine = ifelse(cylinders == "rotary", TRUE, FALSE), 
+    cylinders = as.numeric(ifelse(cylinders == "rotary", NA, cylinders))
   )
 ```
 
@@ -56,7 +58,7 @@ get_top_cars <- function(df, metric, n = 5) {
 
 ###Test: Get Top Cars
 ```{r}
-get_top_cars(dougscore, metric = "msrp", n = 10)
+get_top_cars(dougscore, metric = "cylinders", n = 10)
 ```
 
 ##Search Cars
@@ -100,7 +102,7 @@ search_metric <- function(df, query, metric = NULL, max_results = 10) {
 ###Test: Search 
 ```{r}
 search_cars(dougscore, "gtr", max_results = 2)
-search_metric(dougscore, "ferrari", "hp", max_results = 3)
+search_metric(dougscore, "ferrari", "cylinders", max_results = 3)
 ```
 
 
@@ -181,7 +183,7 @@ plot_comparison <- function(df, queries, metric = "total_score", max_results = 1
 
 ###Test: Plot Compare
 ```{r}
-plot_comparison(dougscore, queries = c("mclaren f1", "hummer ev", "nissan", "amg"), metric = "hp")
+plot_comparison(dougscore, queries = c("mclaren f1", "nissan", "amg"), metric = "cylinders")
 ```
 
 ##Plot: Metric by Make
@@ -234,7 +236,7 @@ plot_score_vs_spec <- function(df, x = "mpg", y = "total_score", label_top = 5) 
 
 ###Test: Plot DougScore vs Metric
 ```{r}
-plot_score_vs_spec(dougscore, x = "mpg", y = "daily_score")
+plot_score_vs_spec(dougscore, x = "cylinders", y = "daily_score")
 ```
 ##Plot: Score by CarPlay
 ```{r}
@@ -404,7 +406,7 @@ get_car_summary_llm <- function(df, query, engine = "gpt-3.5-turbo") {
 
 ###Test: LLM Get Car Summary 
 ```{r}
-get_car_summary_llm(dougscore, "Tesla Model S")
+get_car_summary_llm(dougscore, "Mazda CX")
 ```
 
 ##Easter Egg
@@ -450,7 +452,7 @@ generate_doug_joke <- function(df, query, engine = "gpt-3.5-turbo") {
 
 ###Test: Easter Egg
 ```{r}
-generate_doug_joke(dougscore, "Hummer EV")
+generate_doug_joke(dougscore, "Mazda CX")
 ```
 
 ##LLM Compare Cars
@@ -510,6 +512,6 @@ compare_cars_llm <- function(df, query1, query2, engine = "gpt-3.5-turbo") {
 
 ###Test LLM Compare Cars
 ```{r}
-compare_cars_llm(dougscore, "ferrari f40", "ferrari f50")
+compare_cars_llm(dougscore, "Honda Passport", "Honda Odyssey")
 ```
 
