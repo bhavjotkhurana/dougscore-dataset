@@ -28,7 +28,7 @@ if (api_key == "") {
 }
 ```
 
-
+##Some Data Cleaning
 ```{r}
 dougscore <- data_2 %>% 
   mutate(
