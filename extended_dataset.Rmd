@@ -43,35 +43,40 @@ get_top_cars <- function(df, metric, n = 5) {
 }
 ```
 
-###Get Top Cars Test
+###Test: Get Top Cars
 ```{r}
 get_top_cars(dougscore, metric = "msrp", n = 10)
 ```
 
 ##Search Cars
 ```{r}
-search_cars <- function(df, query, max_results = 10) {
-  query <- tolower(query)
+search_cars <- function(df, query, metric = NULL, max_results = 10) {
+  results <- search_cars(df, query, max_results = max_results)
 
-  results <- df %>%
-    filter(
-      str_detect(tolower(make), query) |
-      str_detect(tolower(model), query) |
-      str_detect(tolower(paste(year, make, model)), query)
-    ) %>%
-    slice_head(n = max_results)
+  # If a metric is supplied, return just the core info + metric
+  if (!is.null(metric)) {
+    if (!metric %in% colnames(df)) {
+      stop(paste("Metric", metric, "not found in dataset."))
+    }
 
+    return(results %>%
+             mutate(car_id = paste(year, make, model)) %>%
+             select(car_id, !!sym(metric)))
+  }
+
+  # Otherwise, just return the full search result
   return(results)
 }
-
 ```
 
-###Search Test
+###Test: Search Cars
 ```{r}
 search_cars(dougscore, "gt-r")
 search_cars(dougscore, "ferrari", max_results = 3)
 search_cars(dougscore, "1994", max_results = 5)
 ```
+
+
 ##Filter By
 ```{r}
 filter_by <- function(df, column, query, max_results = 10) {
@@ -84,7 +89,7 @@ filter_by <- function(df, column, query, max_results = 10) {
 }
 ```
 
-###Filter Test
+###Test: Filter By
 ```{r}
 gtr <- filter_by(dougscore, model, "gtr")
 head(gtr)
@@ -114,12 +119,12 @@ compare_cars <- function(df, queries, max_results_per_query = 1) {
 
 ```
 
-###Test Compare
+###Test: Compare
 ```{r}
 compare_cars(dougscore, c("mclaren f1", "ferrari f40", "porsche 918"))
 ```
 
-##Plot Compare
+##Plot: Compare
 ```{r}
 library(ggplot2)
 
@@ -147,9 +152,33 @@ plot_comparison <- function(df, queries, metric = "total_score", max_results = 1
 }
 ```
 
-###Plot Compare Test
+###Test: Plot Compare
 ```{r}
 plot_comparison(dougscore, queries = c("mclaren f1", "hummer ev", "nissan", "amg"), metric = "hp")
 ```
 
+##Plot: Metric by Make
+```{r}
+plot_metric_by_make <- function(df, metric = "mpg", top_n = 10) {
+  df %>%
+    group_by(make) %>%
+    summarize(avg_value = mean(.data[[metric]], na.rm = TRUE)) %>%
+    slice_max(avg_value, n = top_n) %>%
+    ggplot(aes(x = reorder(make, avg_value), y = avg_value)) +
+    geom_col(fill = "#4ad493") +
+    labs(title = paste("Top", top_n, "Makes by", metric),
+         x = "Make", y = paste("Average", metric)) +
+    coord_flip() +
+    theme_minimal()
+}
+```
+
+###Test: Metric by Make
+```{r}
+plot_metric_by_make(dougscore, metric = "hp")
+```
+##Plot: Score vs 
+```{r}
+
+```
 
