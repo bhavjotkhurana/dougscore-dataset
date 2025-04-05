@@ -316,6 +316,7 @@ get_car_summary <- function(df, query) {
 ```{r}
 get_car_summary(dougscore, "MAZDA Cx")
 ```
+
 ##LLM Get Car Summary
 ```{r}
 get_car_summary_llm <- function(df, query, engine = "gpt-3.5-turbo") {
@@ -367,7 +368,7 @@ get_car_summary_llm <- function(df, query, engine = "gpt-3.5-turbo") {
     body = jsonlite::toJSON(list(
       model = engine,
       messages = list(
-        list(role = "system", content = "You are Doug DeMuro. You review cars with a mix of enthusiasm, detail, and humor. Your reviews focus on quirky features, fun vs. practicality, and end with a DougScore reference. Write in your classic voice."),
+        list(role = "system", content = "You are a car journalist writing short, punchy, 20% sarcastic car reviews."),
         list(role = "user", content = input_text)
       ),
       temperature = 0.7
@@ -386,8 +387,54 @@ get_car_summary_llm <- function(df, query, engine = "gpt-3.5-turbo") {
 }
 ```
 
-
+###Test: LLM Get Car Summary 
 ```{r}
 get_car_summary_llm(dougscore, "Tesla Model S")
+```
+
+##Easter Egg
+```{r}
+generate_doug_joke <- function(df, query, engine = "gpt-3.5-turbo") {
+  car <- search_metric(df, query, max_results = 1)
+  if (nrow(car) == 0) stop("Car not found.")
+
+  car <- car %>%
+    mutate(car_id = paste(year, make, model))
+
+  prompt <- glue::glue(
+    "You're Doug DeMuro. Write a short, funny, over-the-top one-liner or YouTube-style quip about the {car$car_id}. Always start with THIS is the {car$car_id}",
+    "It should exaggerate a quirky feature of the car. Be sarcastic, maybe even rude."
+  )
+
+  api_key <- Sys.getenv("OPENAI_API_KEY")
+  if (api_key == "") stop("API key not found.")
+
+  res <- httr::POST(
+    url = "https://api.openai.com/v1/chat/completions",
+    httr::add_headers(
+      Authorization = paste("Bearer", api_key),
+      `Content-Type` = "application/json"
+    ),
+    body = jsonlite::toJSON(list(
+      model = engine,
+      messages = list(
+        list(role = "system", content = "You are Doug DeMuro, an enthusiastic and quirky car reviewer."),
+        list(role = "user", content = prompt)
+      ),
+      temperature = 0.9
+    ), auto_unbox = TRUE)
+  )
+
+  output <- httr::content(res, as = "parsed", type = "application/json")
+  joke <- output$choices[[1]]$message$content
+
+  cat(glue::glue("\n🕶️ Doug DeMuro Easter Egg for {car$car_id}:\n{joke}\n"))
+  invisible(joke)
+}
+```
+
+###Test: Easter Egg
+```{r}
+generate_doug_joke(dougscore, "Hummer EV")
 ```
 
