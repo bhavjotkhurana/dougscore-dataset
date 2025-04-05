@@ -16,8 +16,7 @@ library(glue)
 ```
 
 ```{r}
-data <- read.csv("~/Desktop/dougscore-dataset/DougScore.csv")
-data_2 <- read.csv("~/Desktop/dougscore-dataset/ds_updated.csv")
+dougscore <- read.csv("~/Desktop/dougscore-dataset/DougScore.csv")
 ```
 
 ```{r}
@@ -28,18 +27,21 @@ if (api_key == "") {
 }
 ```
 
+
 ##Some Data Cleaning
-```{r}
-dougscore <- data_2 %>% 
-  mutate(
-    weekend_score = styling + acceleration + handling + fun_factor + cool_factor,
-    daily_score = features + comfort + quality + practicality + value,
-    total_score = weekend_score + daily_score, 
-    car_id = paste(year, make, model),
-    rotary_engine = ifelse(cylinders == "rotary", TRUE, FALSE), 
-    cylinders = as.numeric(ifelse(cylinders == "rotary", NA, cylinders))
-  )
-```
+# ```{r}
+# dougscore <- data_2 %>% 
+#   mutate(
+#     weekend_score = styling + acceleration + handling + fun_factor + cool_factor,
+#     daily_score = features + comfort + quality + practicality + value,
+#     total_score = weekend_score + daily_score, 
+#     car_id = paste(year, make, model),
+#     rotary_engine = ifelse(cylinders == "rotary", TRUE, FALSE), 
+#     cylinders = as.numeric(ifelse(cylinders == "rotary", NA, cylinders))
+#   )
+# 
+# write.csv(dougscore, "~/Desktop/dougscore-dataset/dougscore.csv")
+# ```
 
 #Functions
 
@@ -236,7 +238,7 @@ plot_score_vs_spec <- function(df, x = "mpg", y = "total_score", label_top = 5) 
 
 ###Test: Plot DougScore vs Metric
 ```{r}
-plot_score_vs_spec(dougscore, x = "cylinders", y = "daily_score")
+plot_score_vs_spec(dougscore, x = "hp", y = "weekend_score")
 ```
 ##Plot: Score by CarPlay
 ```{r}
