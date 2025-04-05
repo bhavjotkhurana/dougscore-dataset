@@ -10,6 +10,9 @@ knitr::opts_chunk$set(echo = TRUE)
 ```{r}
 library(tidyverse)
 library(stringdist)
+library(ggrepel)
+library(recipes)
+library(glue)
 ```
 
 ```{r}
@@ -72,7 +75,7 @@ search_cars <- function(df, query, metric = NULL, max_results = 10) {
 ###Test: Search Cars
 ```{r}
 search_cars(dougscore, "gt-r")
-search_cars(dougscore, "ferrari", max_results = 3)
+search_cars(dougscore, "ferrari", max_results = 10)
 search_cars(dougscore, "1994", max_results = 5)
 ```
 
@@ -177,8 +180,131 @@ plot_metric_by_make <- function(df, metric = "mpg", top_n = 10) {
 ```{r}
 plot_metric_by_make(dougscore, metric = "hp")
 ```
-##Plot: Score vs 
-```{r}
 
+##Plot: DougScore vs metric
+```{r}
+plot_score_vs_spec <- function(df, x = "mpg", y = "total_score", label_top = 5) {
+  df <- df %>%
+    mutate(car_id = paste(year, make, model))
+
+  p <- ggplot(df, aes(x = .data[[x]], y = .data[[y]])) +
+    geom_point(alpha = 0.6) +
+    labs(title = paste(y, "vs", x), x = x, y = y) +
+    theme_minimal()
+
+  if (!is.null(label_top)) {
+    top_cars <- df %>%
+      slice_max(order_by = .data[[y]], n = label_top)
+
+    p <- p + ggrepel::geom_text_repel(
+      data = top_cars,
+      aes(label = car_id),
+      max.overlaps = Inf,
+      size = 3
+    )
+  }
+
+  p
+}
+```
+
+###Test: Plot DougScore vs Metric
+```{r}
+plot_score_vs_spec(dougscore, x = "", y = "daily_score")
+```
+##Plot: Score by CarPlay
+```{r}
+plot_score_by_carplay <- function(df, score = "total_score") {
+  df %>%
+    filter(!is.na(carplay)) %>%
+    mutate(carplay = ifelse(carplay == 1, "Has CarPlay", "No CarPlay")) %>%
+    ggplot(aes(x = carplay, y = .data[[score]], fill = carplay)) +
+    geom_boxplot(outlier.shape = NA, alpha = 0.6) +
+    geom_jitter(width = 0.1, alpha = 0.3) +
+    labs(
+      title = paste(score, "by CarPlay Availability"),
+      x = NULL, y = score
+    ) +
+    theme_minimal() +
+    theme(legend.position = "none")
+}
+```
+
+###Test: Plot Score by CarPlay
+```{r}
+plot_score_by_carplay(dougscore, score = "features")
+```
+##Find Similar Cars
+```{r}
+find_similar_cars <- function(df, query, n = 5) {
+  # Find the target car
+  target <- search_metric(df, query, max_results = 1)
+  if (nrow(target) == 0) stop("Car not found.")
+
+  # Select numeric features for comparison
+  compare_fields <- c("total_score", "torque", "hp", "displacement", "styling")
+
+  df_filtered <- df %>%
+    filter(if_all(all_of(compare_fields), ~ !is.na(.)))
+
+  # Normalize features
+  rec <- recipe(~ ., data = df_filtered[compare_fields]) %>%
+    step_normalize(all_predictors()) %>%
+    prep()
+  df_norm <- bake(rec, df_filtered[compare_fields])
+
+  # Normalize target car
+  target_norm <- bake(rec, target[compare_fields]) %>% as.numeric()
+
+  # Compute Euclidean distance
+  distances <- apply(df_norm, 1, function(row) sqrt(sum((row - target_norm)^2)))
+
+  df_filtered <- df_filtered %>%
+    mutate(car_id = paste(year, make, model),
+           similarity = -distances) %>%
+    arrange(desc(similarity))
+
+  df_filtered %>%
+    filter(car_id != paste(target$year, target$make, target$model)) %>%
+    slice_head(n = n)
+}
+```
+
+###Test: Find Similar Cars
+```{r}
+find_similar_cars(dougscore, "Ferrari", n = 5)
+```
+
+##Get Car Summary
+```{r}
+get_car_summary <- function(df, query) {
+  car <- search_metric(df, query, max_results = 1)
+  if (nrow(car) == 0) stop("Car not found.")
+
+  car <- car %>%
+    mutate(car_id = paste(year, make, model))
+
+  # Create a paragraph-style description
+  summary_text <- glue::glue(
+    "{car$car_id} scores {car$total_score}/100 on DougScore, with a {car$weekend_score}/50 for weekend driving and {car$daily_score}/50 for daily usability. ",
+    "It has a {car$transmission} transmission and a {car$displacement}L engine producing {car$hp} horsepower. ",
+    "Fuel economy is around {car$mpg} ", 
+    if(car$fuel == "electric") "MPGe. " else "mpg. ",
+    if (!is.na(car$carplay) && car$carplay == 1) "It also comes with Apple CarPlay. " else "",
+    if(car$fuel != "electric") "This car is categorized as a {car$fuel} vehicle and has {car$cylinders} cylinders." else "",
+    .trim = TRUE
+  )
+
+  list(
+    car_data = car %>% select(car_id, weekend_score, daily_score, total_score, mpg, hp, displacement, transmission, fuel, carplay),
+    summary = summary_text
+  )
+}
+
+```
+
+###Test: Get Car Summary
+```{r}
+get_car_summary(dougscore, "lucid air")
 ```
 
