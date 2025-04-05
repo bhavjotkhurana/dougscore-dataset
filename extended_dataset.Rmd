@@ -319,47 +319,75 @@ get_car_summary(dougscore, "MAZDA Cx")
 ##LLM Get Car Summary
 ```{r}
 get_car_summary_llm <- function(df, query, engine = "gpt-3.5-turbo") {
+  # Find the car using fuzzy search
   car <- search_metric(df, query, max_results = 1)
   if (nrow(car) == 0) stop("Car not found.")
 
-  # Format info to send to the LLM
+  # Handle any NA values with defaults for prompt generation
+  car <- car %>%
+    mutate(
+      car_id = paste(year, make, model),
+      mpg = ifelse(is.na(mpg), "unknown", mpg),
+      hp = ifelse(is.na(hp), "unknown", hp),
+      displacement = ifelse(is.na(displacement), "unknown", displacement),
+      transmission = ifelse(is.na(transmission), "unknown", transmission),
+      fuel = ifelse(is.na(fuel), "unknown", fuel),
+      cylinders = ifelse(is.na(cylinders), "unknown", cylinders),
+      mpg_unit = ifelse(fuel == "electric", "MPGe", "mpg"),
+      carplay_text = ifelse(!is.na(carplay) && carplay == 1, "It also comes with Apple CarPlay. ", ""),
+      fuel_text = ifelse(fuel != "electric",
+                         paste0("This car is categorized as a ", fuel, " vehicle and has ", cylinders, " cylinders."),
+                         "")
+    )
+
+  # Build natural language prompt from the specs
   input_text <- glue::glue(
-    "Write a short, engaging car review summary for the following specs:\n",
-    "Car: {car$year} {car$make} {car$model}\n",
-    "DougScore: {car$total_score}/100 (Weekend: {car$weekend_score}, Daily: {car$daily_score})\n",
-    "Transmission: {car$transmission}\n",
-    "Displacement: {car$displacement}L\n",
-    "Horsepower: {car$hp} hp\n",
-    "Fuel Type: {car$fuel_type}\n",
-    "Fuel Economy: {car$mpg} mpg\n",
-    if (!is.na(car$carplay) && car$carplay == 1) "Includes CarPlay.\n" else "",
+    "{car$car_id} scores {car$total_score}/100 on DougScore, with a {car$weekend_score}/50 for weekend driving and {car$daily_score}/50 for daily usability. ",
+    "It has a {car$transmission} transmission and a {car$displacement}L engine producing {car$hp} horsepower. ",
+    "Fuel economy is around {car$mpg} {car$mpg_unit}. ",
+    "{car$carplay_text}",
+    "{car$fuel_text}",
     .trim = TRUE
   )
 
+  # Optional: print the prompt you're sending
+  cat("\n🔍 Prompt Sent to OpenAI:\n", input_text, "\n\n")
+
+  # Make sure API key exists
+  api_key <- Sys.getenv("OPENAI_API_KEY")
+  if (api_key == "") stop("API key not found. Set OPENAI_API_KEY in your .Renviron.")
+
+  # Call the OpenAI API
   res <- httr::POST(
     url = "https://api.openai.com/v1/chat/completions",
     httr::add_headers(
-      Authorization = paste("Bearer", Sys.getenv("OPENAI_API_KEY")),
+      Authorization = paste("Bearer", api_key),
       `Content-Type` = "application/json"
     ),
     body = jsonlite::toJSON(list(
       model = engine,
       messages = list(
-        list(role = "system", content = "You are a car journalist writing snappy, data-informed vehicle reviews."),
+        list(role = "system", content = "You are Doug DeMuro. You review cars with a mix of enthusiasm, detail, and humor. Your reviews focus on quirky features, fun vs. practicality, and end with a DougScore reference. Write in your classic voice."),
         list(role = "user", content = input_text)
       ),
       temperature = 0.7
     ), auto_unbox = TRUE)
   )
 
-  output <- httr::content(res)
+  # Extract the content from the response
+  output <- httr::content(res, as = "parsed", type = "application/json")
   summary_text <- output$choices[[1]]$message$content
 
+  # Return both data and summary
   list(
-    car_data = car %>% select(year, make, model, total_score, mpg, hp),
+    car_data = car %>% select(car_id, total_score, weekend_score, daily_score, mpg, hp, transmission, fuel),
     summary = summary_text
   )
 }
 ```
 
+
+```{r}
+get_car_summary_llm(dougscore, "Tesla Model S")
+```
 
