@@ -1,7 +1,7 @@
 
 # DougScore Dataset
 
-DougScore Dataset is an R-based data project that extends [Doug DeMuro’s](https://www.youtube.com/user/DougDeMuro) vehicle scoring system into a fully functional, analysis-ready dataset and toolkit. It supports car search, comparison, visualization, and GPT-powered review generation using OpenAI's API. The goal is to create a modern, extensible version of datasets like `mtcars`, enriched with DougScore metrics and real-world specs.
+DougScore Dataset is an R-based data project that extends [Doug DeMuro’s](https://www.youtube.com/channel/UCsqjHFMB_JYTaEnf_vmTNqg) vehicle scoring system into a fully functional, analysis-ready dataset and toolkit. It supports car search, comparison, visualization, and GPT-powered review generation using OpenAI's API. The goal is to create a modern, extensible version of datasets like `mtcars`, enriched with DougScore metrics and real-world specs.
 
 ## Features
 
