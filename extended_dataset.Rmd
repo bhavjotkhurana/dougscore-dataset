@@ -39,7 +39,6 @@ dougscore <- data_2 %>%
   )
 ```
 
-
 #Functions
 
 ##Get Top Cars
@@ -62,7 +61,24 @@ get_top_cars(dougscore, metric = "msrp", n = 10)
 
 ##Search Cars
 ```{r}
-search_cars <- function(df, query, metric = NULL, max_results = 10) {
+search_cars <- function(df, query, max_results = 10) {
+  query <- tolower(query)
+
+  results <- df %>%
+    filter(
+      str_detect(tolower(make), query) |
+      str_detect(tolower(model), query) |
+      str_detect(tolower(paste(year, make, model)), query)
+    ) %>%
+    slice_head(n = max_results)
+
+  return(results)
+}
+```
+
+##Search Metric
+```{r}
+search_metric <- function(df, query, metric = NULL, max_results = 10) {
   results <- search_cars(df, query, max_results = max_results)
 
   # If a metric is supplied, return just the core info + metric
@@ -81,11 +97,10 @@ search_cars <- function(df, query, metric = NULL, max_results = 10) {
 }
 ```
 
-###Test: Search Cars
+###Test: Search 
 ```{r}
-search_cars(dougscore, "gt-r")
-search_cars(dougscore, "ferrari", max_results = 10)
-search_cars(dougscore, "1994", max_results = 5)
+search_cars(dougscore, "gtr", max_results = 2)
+search_metric(dougscore, "ferrari", "hp", max_results = 3)
 ```
 
 
@@ -96,7 +111,7 @@ filter_by <- function(df, column, query, max_results = 10) {
   query <- tolower(query)
 
   df %>%
-    filter(str_detect(tolower(!!column), fixed(query))) %>%
+    filter(str_detect(tolower(!!column), stringr::fixed(query))) %>%
     slice_head(n = max_results)
 }
 ```
@@ -219,7 +234,7 @@ plot_score_vs_spec <- function(df, x = "mpg", y = "total_score", label_top = 5) 
 
 ###Test: Plot DougScore vs Metric
 ```{r}
-plot_score_vs_spec(dougscore, x = "", y = "daily_score")
+plot_score_vs_spec(dougscore, x = "mpg", y = "daily_score")
 ```
 ##Plot: Score by CarPlay
 ```{r}
@@ -436,5 +451,65 @@ generate_doug_joke <- function(df, query, engine = "gpt-3.5-turbo") {
 ###Test: Easter Egg
 ```{r}
 generate_doug_joke(dougscore, "Hummer EV")
+```
+
+##LLM Compare Cars
+```{r}
+compare_cars_llm <- function(df, query1, query2, engine = "gpt-3.5-turbo") {
+  # Fuzzy match and retrieve cars
+  car1 <- search_metric(df, query1, max_results = 1)
+  car2 <- search_metric(df, query2, max_results = 1)
+
+  if (nrow(car1) == 0 || nrow(car2) == 0) stop("One or both cars not found.")
+
+  car1 <- car1 %>% mutate(car_id = paste(year, make, model))
+  car2 <- car2 %>% mutate(car_id = paste(year, make, model))
+
+  # Build prompt
+  prompt <- glue::glue(
+    "You're Doug DeMuro. Compare the {car1$car_id} and the {car2$car_id} in your signature style. ",
+    "Include DougScore breakdowns (weekend and daily), quirky or interesting features, ",
+    "and end with a verdict on which car you would rather own and why. ",
+    "Use humor, personality, and be dramatic if necessary.\n\n",
+    
+    "Here are the DougScore details:\n\n",
+    "{car1$car_id}: Total Score: {car1$total_score}/100 (Weekend: {car1$weekend_score}, Daily: {car1$daily_score})\n",
+    "{car2$car_id}: Total Score: {car2$total_score}/100 (Weekend: {car2$weekend_score}, Daily: {car2$daily_score})\n\n",
+    
+    "Now write the comparison."
+  )
+
+  # API call
+  api_key <- Sys.getenv("OPENAI_API_KEY")
+  if (api_key == "") stop("API key not found.")
+
+  res <- httr::POST(
+    url = "https://api.openai.com/v1/chat/completions",
+    httr::add_headers(
+      Authorization = paste("Bearer", api_key),
+      `Content-Type` = "application/json"
+    ),
+    body = jsonlite::toJSON(list(
+      model = engine,
+      messages = list(
+        list(role = "system", content = "You are Doug DeMuro. Write comparison reviews in a personal, entertaining, and insightful style."),
+        list(role = "user", content = prompt)
+      ),
+      temperature = 0.8
+    ), auto_unbox = TRUE)
+  )
+
+  output <- httr::content(res, as = "parsed", type = "application/json")
+  review <- output$choices[[1]]$message$content
+
+  cat(glue::glue("\n🚗 Doug DeMuro Comparison: {car1$car_id} vs {car2$car_id}\n\n"))
+  cat(review)
+  invisible(review)
+}
+```
+
+###Test LLM Compare Cars
+```{r}
+compare_cars_llm(dougscore, "ferrari f40", "ferrari f50")
 ```
 
