@@ -27,22 +27,6 @@ if (api_key == "") {
 }
 ```
 
-
-##Some Data Cleaning
-# ```{r}
-# dougscore <- data_2 %>% 
-#   mutate(
-#     weekend_score = styling + acceleration + handling + fun_factor + cool_factor,
-#     daily_score = features + comfort + quality + practicality + value,
-#     total_score = weekend_score + daily_score, 
-#     car_id = paste(year, make, model),
-#     rotary_engine = ifelse(cylinders == "rotary", TRUE, FALSE), 
-#     cylinders = as.numeric(ifelse(cylinders == "rotary", NA, cylinders))
-#   )
-# 
-# write.csv(dougscore, "~/Desktop/dougscore-dataset/dougscore.csv")
-# ```
-
 #Functions
 
 ##Get Top Cars
