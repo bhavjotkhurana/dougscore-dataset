@@ -69,3 +69,5 @@ The key is accessed via `Sys.getenv()` and is never stored in this repository.
 - Add function documentation and vignettes  
 - Include a Shiny interface for interactive exploration  
 - Enable batch LLM summaries and exportable reports  
+
+This project is licensed under the [MIT License](LICENSE).
